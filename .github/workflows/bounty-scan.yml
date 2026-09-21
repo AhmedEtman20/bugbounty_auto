@@ -1,0 +1,79 @@
+name: Example.com Automated Subdomain & Nuclei Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  security_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set up Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run Recon and Nuclei Scan Script
+        run: |
+          python -c '
+          import subprocess, sys, shutil, os
+
+          def run_cmd(command):
+              print(f"[*] Running command: {command}")
+              process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+              return process.returncode, process.stdout, process.stderr
+
+          def is_installed(name):
+              return shutil.which(name) is not None
+
+          go_bin = os.path.expanduser("~/go/bin")
+          if go_bin not in os.environ["PATH"]:
+              os.environ["PATH"] += os.pathsep + go_bin
+
+          if not is_installed("nuclei"):
+              run_cmd("go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest")
+          
+          run_cmd("nuclei -update-templates")
+
+          if not is_installed("subfinder"):
+              run_cmd("go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest")
+
+          output_dir = "scan_results"
+          os.makedirs(output_dir, exist_ok=True)
+
+          # تم التعديل هنا ليعمل على example
+          target_domain = "example.com"
+          subdomains_file = os.path.join(output_dir, f"{target_domain}_subdomains.txt")
+          output_report = os.path.join(output_dir, f"{target_domain}_nuclei_report.txt")
+
+          print(f"--- Step 2: Enumerating subdomains for target: {target_domain} ---")
+          run_cmd(f"subfinder -d {target_domain} -o {subdomains_file} -silent")
+
+          if not os.path.exists(subdomains_file) or os.path.getsize(subdomains_file) == 0:
+              print("[-] No subdomains found.")
+              sys.exit(1)
+
+          with open(subdomains_file, "r") as f:
+              sub_count = len(f.readlines())
+          print(f"[+] Found {sub_count} subdomains.")
+
+          print(f"--- Step 3: Running Nuclei scan ---")
+          run_cmd(f"nuclei -l {subdomains_file} -o {output_report}")
+          print("[+] Scan completed successfully!")
+          '
+
+      - name: Upload Scan Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rateitall-scan-reports
+          path: scan_results/
