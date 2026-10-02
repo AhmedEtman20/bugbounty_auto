@@ -84,7 +84,7 @@ ROOT="legacy_hunt_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$ROOT"
 MASTER_STATS="$ROOT/.stats.txt"
 > "$MASTER_STATS"
-export PATH="$PATH:$HOME/go/bin:$GOPATH/bin:/usr/local/bin"
+export PATH="$PATH:$HOME/go/bin:${GOPATH:-$HOME/go}/bin:/usr/local/bin"
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 CUSTOM_NUCLEI_DIR="$(pwd)/scripts/nuclei-templates"
 
