@@ -42,26 +42,31 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq jq curl wget git dnsutils sqlmap nikto whatweb nmap ruby-full libcurl4-openssl-dev libxml2-dev
-          sudo apt-get install -y -qq --no-install-recommends amass
+          # تثبيت Chrome عشان Jaeles تشتغل
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq google-chrome-stable
 
-      - name: Install Go Tools (Subfinder, Amass alternative, Nuclei, etc.)
+      - name: Install Go Tools (Amass, Nuclei, Jaeles, etc.)
         run: |
-          go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-          go install github.com/projectdiscovery/httpx/cmd/httpx@latest
-          go install github.com/projectdiscovery/katana/cmd/katana@latest
-          go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-          go install github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
-          go install github.com/hahwul/dalfox/v2@latest
-          go install github.com/lc/gau/v2/cmd/gau@latest
-          go install github.com/tomnomnom/waybackurls@latest
-          go install github.com/tomnomnom/assetfinder@latest
-          go install github.com/tomnomnom/gf@latest
-          go install github.com/tomnomnom/anew@latest
-          go install github.com/lc/subjs@latest
-          go install github.com/003random/getJS@latest
-          go install github.com/BishopFox/jsluice/cmd/jsluice@latest
-          go install github.com/xnl-h4ck3r/waymore@latest
-          go install github.com/jaeles-project/jaeles@latest
+          go install -v github.com/owasp-amass/amass/v4/...@master
+          go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+          go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+          go install -v github.com/projectdiscovery/katana/cmd/katana@latest
+          go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+          go install -v github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
+          go install -v github.com/hahwul/dalfox/v2@latest
+          go install -v github.com/lc/gau/v2/cmd/gau@latest
+          go install -v github.com/tomnomnom/waybackurls@latest
+          go install -v github.com/tomnomnom/assetfinder@latest
+          go install -v github.com/tomnomnom/gf@latest
+          go install -v github.com/tomnomnom/anew@latest
+          go install -v github.com/lc/subjs@latest
+          go install -v github.com/003random/getJS@latest
+          go install -v github.com/BishopFox/jsluice/cmd/jsluice@latest
+          go install -v github.com/xnl-h4ck3r/waymore@latest
+          go install -v github.com/jaeles-project/jaeles@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Install Commix
