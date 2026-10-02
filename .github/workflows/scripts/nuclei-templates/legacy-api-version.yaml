@@ -1,0 +1,45 @@
+id: legacy-api-version
+
+info:
+  name: Legacy API Version Exposure
+  author: legacy-hunter
+  severity: medium
+  description: Detects old/deprecated API versions still accessible
+  tags: api,legacy,deprecated
+
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/api/v1/"
+      - "{{BaseURL}}/api/v2/"
+      - "{{BaseURL}}/api/v0/"
+      - "{{BaseURL}}/api/beta/"
+      - "{{BaseURL}}/api/old/"
+      - "{{BaseURL}}/api/deprecated/"
+      - "{{BaseURL}}/rest/v1/"
+      - "{{BaseURL}}/graphql/v1/"
+      - "{{BaseURL}}/soap/v1/"
+      - "{{BaseURL}}/xmlrpc.php"
+      - "{{BaseURL}}/api/swagger.json"
+      - "{{BaseURL}}/api/openapi.json"
+      - "{{BaseURL}}/swagger-ui.html"
+      - "{{BaseURL}}/api-docs"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 401
+          - 403
+
+      - type: word
+        words:
+          - "swagger"
+          - "openapi"
+          - "apiVersion"
+          - "deprecated"
+          - "v1"
+          - "v2"
+        part: body
+        condition: or
