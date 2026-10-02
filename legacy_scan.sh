@@ -12,7 +12,6 @@ warn() { echo -e "${YELLOW}  [!]${NC} $1"; }
 err()  { echo -e "${RED}  [-]${NC} $1"; }
 cnt()  { wc -l < "$1" 2>/dev/null | tr -d ' ' || echo 0; }
 
-# --- توليد قوالب Nuclei المخصصة تلقائياً ---
 setup_templates() {
     mkdir -p scripts/nuclei-templates
     cat << 'YAML_EOF' > scripts/nuclei-templates/legacy-backup-exposure.yaml
