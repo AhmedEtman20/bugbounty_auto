@@ -1,0 +1,55 @@
+id: legacy-backup-exposure
+
+info:
+  name: Legacy Backup File Exposure
+  author: legacy-hunter
+  severity: high
+  description: Detects exposed backup files (old, bak, zip, sql, env)
+  tags: exposure,backup,legacy
+
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+      - "{{BaseURL}}/.env.bak"
+      - "{{BaseURL}}/.env.old"
+      - "{{BaseURL}}/config.php.bak"
+      - "{{BaseURL}}/config.php.old"
+      - "{{BaseURL}}/backup.zip"
+      - "{{BaseURL}}/backup.tar.gz"
+      - "{{BaseURL}}/db.sql"
+      - "{{BaseURL}}/database.sql"
+      - "{{BaseURL}}/dump.sql"
+      - "{{BaseURL}}/www.zip"
+      - "{{BaseURL}}/site.zip"
+      - "{{BaseURL}}/.git/config"
+      - "{{BaseURL}}/.svn/entries"
+      - "{{BaseURL}}/.DS_Store"
+      - "{{BaseURL}}/wp-config.php.bak"
+      - "{{BaseURL}}/index.php.old"
+      - "{{BaseURL}}/web.config.old"
+
+    matchers-condition: or
+    matchers:
+      - type: word
+        words:
+          - "DB_PASSWORD"
+          - "DB_USER"
+          - "mysql://"
+          - "postgres://"
+          - "mongodb://"
+          - "AWS_ACCESS_KEY"
+          - "SECRET_KEY"
+        part: body
+        condition: or
+
+      - type: status
+        status:
+          - 200
+        part: header
+
+      - type: regex
+        regex:
+          - "\\[core\\]"
+          - "repositoryformatversion"
+        part: body
