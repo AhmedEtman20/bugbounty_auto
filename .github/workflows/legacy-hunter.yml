@@ -1,4 +1,4 @@
-name: Legacy Hunter v2
+name: Legacy Hunter v3
 
 on:
   schedule:
@@ -9,6 +9,10 @@ on:
         description: 'اكتب الدومينات هنا (بمسافة بينهم)'
         required: true
         default: 'example.com'
+      deep:
+        description: 'وضع عميق (Amass brute force)'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -37,9 +41,10 @@ jobs:
       - name: Install System Packages
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq jq curl wget git dnsutils sqlmap nikto
+          sudo apt-get install -y -qq jq curl wget git dnsutils sqlmap nikto whatweb nmap ruby-full libcurl4-openssl-dev libxml2-dev
+          sudo apt-get install -y -qq --no-install-recommends amass
 
-      - name: Install Go Tools
+      - name: Install Go Tools (Subfinder, Amass alternative, Nuclei, etc.)
         run: |
           go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
           go install github.com/projectdiscovery/httpx/cmd/httpx@latest
@@ -50,10 +55,28 @@ jobs:
           go install github.com/lc/gau/v2/cmd/gau@latest
           go install github.com/tomnomnom/waybackurls@latest
           go install github.com/tomnomnom/assetfinder@latest
+          go install github.com/tomnomnom/gf@latest
+          go install github.com/tomnomnom/anew@latest
+          go install github.com/lc/subjs@latest
+          go install github.com/003random/getJS@latest
+          go install github.com/BishopFox/jsluice/cmd/jsluice@latest
+          go install github.com/xnl-h4ck3r/waymore@latest
+          go install github.com/jaeles-project/jaeles@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
+      - name: Install Commix
+        run: |
+          sudo git clone --depth 1 https://github.com/commixproject/commix.git /opt/commix
+          sudo chmod +x /opt/commix/commix.py
+
       - name: Install Python Tools
-        run: pip3 install -q uro robofinder
+        run: pip3 install -q uro arjun paramspider robofinder
+
+      - name: Install SecLists
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/danielmiessler/SecLists.git /tmp/seclists
+          cd /tmp/seclists && git sparse-checkout set Discovery/DNS Discovery/Web-Content Miscellaneous/dns-resolvers.txt
+          sudo mkdir -p /usr/share/seclists && sudo cp -r /tmp/seclists/* /usr/share/seclists/
 
       - name: Setup Nuclei Templates
         run: nuclei -update-templates -silent || true
@@ -61,11 +84,12 @@ jobs:
       - name: Make Script Executable
         run: chmod +x legacy_scan.sh
 
-      - name: Run Legacy Hunter
+      - name: Run Legacy Hunter v3
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DEEP: ${{ github.event.inputs.deep || 'true' }}
         run: |
           echo "${{ github.event.inputs.domains }}" | tr ' ' '\n' > domains.txt
           ./legacy_scan.sh domains.txt
@@ -74,6 +98,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: legacy-findings-${{ github.run_number }}
+          name: legacy-findings-v3-${{ github.run_number }}
           path: legacy_hunt_*/
           retention-days: 30
