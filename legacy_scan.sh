@@ -144,7 +144,7 @@ process_domain() {
     cat "$W/legacy/historical_urls.txt" "$W/legacy/katana_urls.txt" 2>/dev/null | sort -u > "$W/legacy/all_urls.txt"
     grep '=' "$W/legacy/all_urls.txt" 2>/dev/null | sort -u > "$W/params/urls_with_params.txt"
     ok "URLs with params: $(cnt "$W/params/urls_with_params.txt")"
-    if command -v paramspider >/dev/null 2>&1; then python3 -m paramspider -d "$TARGET" -o "$W/params/paramspider.txt" 2>/dev/null || true; fi
+    if command -v paramspider >/dev/null 2>&1; then paramspider -d "$TARGET" -o "$W/params/paramspider.txt" 2>/dev/null || true; fi
     if command -v arjun >/dev/null 2>&1; then head -20 "$W/recon/live.txt" | arjun -i - -oT "$W/params/arjun.txt" -m GET,POST -t 10 --stable 2>/dev/null || true; fi
 
     hdr "PHASE 6/10 — JS Analysis"
