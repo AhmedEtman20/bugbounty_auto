@@ -78,12 +78,14 @@ jobs:
           pip3 install -q uro arjun || true
           pip3 install -q git+https://github.com/devanshbatham/ParamSpider.git || true
           pip3 install -q git+https://github.com/Spix0r/robofinder.git || true
-
+          
       - name: Install SecLists
+        continue-on-error: true
         run: |
-          git clone --depth 1 --filter=blob:none --sparse https://github.com/danielmiessler/SecLists.git /tmp/seclists
-          cd /tmp/seclists && git sparse-checkout set Discovery/DNS Discovery/Web-Content Miscellaneous
-          sudo mkdir -p /usr/share/seclists && sudo cp -r /tmp/seclists/* /usr/share/seclists/
+          sudo mkdir -p /usr/share/seclists/Miscellaneous
+          curl -sL https://raw.githubusercontent.com/danielmiessler/SecLists/master/Miscellaneous/dns-resolvers.txt \
+            -o /usr/share/seclists/Miscellaneous/dns-resolvers.txt || true
+          ls -la /usr/share/seclists/Miscellaneous/
 
       - name: Setup Nuclei Templates
         run: nuclei -update-templates -silent || true
