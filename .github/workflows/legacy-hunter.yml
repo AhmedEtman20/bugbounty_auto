@@ -82,7 +82,7 @@ jobs:
       - name: Install SecLists
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/danielmiessler/SecLists.git /tmp/seclists
-          cd /tmp/seclists && git sparse-checkout set Discovery/DNS Discovery/Web-Content Miscellaneous/dns-resolvers.txt
+          cd /tmp/seclists && git sparse-checkout set Discovery/DNS Discovery/Web-Content Miscellaneous
           sudo mkdir -p /usr/share/seclists && sudo cp -r /tmp/seclists/* /usr/share/seclists/
 
       - name: Setup Nuclei Templates
