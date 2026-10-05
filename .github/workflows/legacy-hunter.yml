@@ -7,10 +7,10 @@ on:
     inputs:
       domains:
         description: 'اكتب الدومينات هنا (بمسافة بينهم)'
-        required: true
-        default: 'example.com'
+        required: false
+        default: ''
       deep:
-        description: 'وضع عميق (Amass brute force)'
+        description: 'وضع عميق'
         type: boolean
         default: true
 
@@ -22,7 +22,7 @@ permissions:
 jobs:
   legacy_hunt:
     runs-on: ubuntu-22.04
-    timeout-minutes: 355
+    timeout-minutes: 350
 
     steps:
       - name: Checkout
@@ -94,9 +94,14 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.domains }}" ]; then
             echo "${{ github.event.inputs.domains }}" | tr ' ' '\n' > /tmp/domains.txt
+          elif [ -f "domains.txt" ]; then
+            cp domains.txt /tmp/domains.txt
           else
             echo "example.com" > /tmp/domains.txt
           fi
+          echo "=== Domains to scan ==="
+          cat /tmp/domains.txt
+          echo "======================="
           ./legacy_scan.sh /tmp/domains.txt
 
       - name: Upload Results
