@@ -91,17 +91,26 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DEEP: ${{ github.event.inputs.deep || 'true' }}
+      
         run: |
+          set -e
+          # لو المستخدم كتب دومين في الـ input، استخدمه
           if [ -n "${{ github.event.inputs.domains }}" ]; then
             echo "${{ github.event.inputs.domains }}" | tr ' ' '\n' > /tmp/domains.txt
+          # لو مفيش input، اقرأ من ملف domains.txt في الريبو
           elif [ -f "domains.txt" ]; then
             cp domains.txt /tmp/domains.txt
+          # لو مفيش لا ده ولا ده، اطلع خطأ (مش تشتغل على example.com)
           else
-            echo "example.com" > /tmp/domains.txt
+            echo "❌ ERROR: No domains provided!"
+            echo "Either fill the 'domains' input OR create a domains.txt file in the repo."
+            exit 1
           fi
+          
           echo "=== Domains to scan ==="
           cat /tmp/domains.txt
           echo "======================="
+          
           ./legacy_scan.sh /tmp/domains.txt
 
       - name: Upload Results
