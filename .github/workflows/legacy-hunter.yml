@@ -1,4 +1,4 @@
-name: Legacy Hunter v3
+name: Legacy Hunter v4
 
 on:
   schedule:
@@ -9,10 +9,6 @@ on:
         description: 'اكتب الدومينات هنا (بمسافة بينهم)'
         required: false
         default: ''
-      deep:
-        description: 'وضع عميق'
-        type: boolean
-        default: true
 
 permissions:
   contents: read
@@ -22,7 +18,7 @@ permissions:
 jobs:
   legacy_hunt:
     runs-on: ubuntu-22.04
-    timeout-minutes: 350
+    timeout-minutes: 340   # 5h 40m (تحت حد GitHub 6h)
 
     steps:
       - name: Checkout
@@ -47,87 +43,119 @@ jobs:
             ruby-full libcurl4-openssl-dev libxml2-dev \
             ca-certificates gnupg
 
-          # Google Chrome (طريقة جديدة - apt-key اتشالت)
+          # Google Chrome — الطريقة الجديدة
           sudo install -d -m 0755 /etc/apt/keyrings
           curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
             | sudo gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
           echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
             | sudo tee /etc/apt/sources.list.d/google-chrome.list
-
           sudo apt-get update -qq
-          sudo apt-get install -y -qq google-chrome-stable
+          sudo apt-get install -y -qq google-chrome-stable || true
 
       - name: Install Go Tools
         run: |
-          go install -v github.com/owasp-amass/amass/v4/...@master
-          go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-          go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
-          go install -v github.com/projectdiscovery/katana/cmd/katana@latest
-          go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-          go install -v github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
-          go install -v github.com/hahwul/dalfox/v2@latest
-          go install -v github.com/lc/gau/v2/cmd/gau@latest
-          go install -v github.com/tomnomnom/waybackurls@latest
-          go install -v github.com/tomnomnom/assetfinder@latest
-          go install -v github.com/tomnomnom/gf@latest
-          go install -v github.com/tomnomnom/anew@latest
-          go install -v github.com/lc/subjs@latest
-          go install -v github.com/003random/getJS@latest
-          go install -v github.com/BishopFox/jsluice/cmd/jsluice@latest
-          go install -v github.com/jaeles-project/jaeles@latest
+          set +e
+          go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+          go install github.com/tomnomnom/assetfinder@latest
+          go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+          go install github.com/projectdiscovery/katana/cmd/katana@latest
+          go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+          go install github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
+          go install github.com/hahwul/dalfox/v2@latest
+          go install github.com/lc/gau/v2/cmd/gau@latest
+          go install github.com/tomnomnom/waybackurls@latest
+          go install github.com/tomnomnom/gf@latest
+          go install github.com/tomnomnom/anew@latest
+          go install github.com/lc/subjs@latest
+          go install github.com/003random/getJS@latest
+          go install github.com/BishopFox/jsluice/cmd/jsluice@latest
+          go install github.com/jaeles-project/jaeles@latest
+          go install github.com/owasp-amass/amass/v4/...@master || true
           echo "$HOME/go/bin" >> $GITHUB_PATH
+          echo "Go tools installation finished"
 
       - name: Install Commix
         run: |
-          sudo git clone --depth 1 https://github.com/commixproject/commix.git /opt/commix
-          sudo chmod +x /opt/commix/commix.py
+          sudo git clone --depth 1 https://github.com/commixproject/commix.git /opt/commix 2>/dev/null || true
+          sudo chmod +x /opt/commix/commix.py 2>/dev/null || true
 
       - name: Install Python Tools
         run: |
+          set +e
           pip3 install -q --upgrade pip
           pip3 install -q uro arjun || true
           pip3 install -q git+https://github.com/devanshbatham/ParamSpider.git || true
           pip3 install -q git+https://github.com/Spix0r/robofinder.git || true
+          echo "Python tools installation finished"
+
+      - name: Install GF Patterns
+        run: |
+          mkdir -p ~/.gf
+          git clone --depth 1 https://github.com/1ndianl33t/Gf-Patterns.git /tmp/gf-patterns 2>/dev/null || true
+          cp /tmp/gf-patterns/*.json ~/.gf/ 2>/dev/null || true
+          echo "GF patterns installed: $(ls ~/.gf/ 2>/dev/null | wc -l) patterns"
 
       - name: Setup Nuclei Templates
-        run: nuclei -update-templates -silent || true
+        run: |
+          nuclei -update-templates -silent 2>/dev/null || true
+          echo "Nuclei templates updated"
 
-      - name: Make Script Executable
-        run: chmod +x legacy_scan.sh
+      - name: Verify Script Exists
+        run: |
+          if [ ! -f legacy_scan.sh ]; then
+            echo "❌ ERROR: legacy_scan.sh not found!"
+            exit 1
+          fi
+          echo "✅ legacy_scan.sh found"
+          head -3 legacy_scan.sh
+          chmod +x legacy_scan.sh
 
-      - name: Run Legacy Hunter v3
+      - name: Run Legacy Hunter v4
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          DEEP: ${{ github.event.inputs.deep || 'true' }}
-      
         run: |
-          set -e
-          # لو المستخدم كتب دومين في الـ input، استخدمه
+          set +e
+          # تحديد الدومينات
           if [ -n "${{ github.event.inputs.domains }}" ]; then
             echo "${{ github.event.inputs.domains }}" | tr ' ' '\n' > /tmp/domains.txt
-          # لو مفيش input، اقرأ من ملف domains.txt في الريبو
           elif [ -f "domains.txt" ]; then
             cp domains.txt /tmp/domains.txt
-          # لو مفيش لا ده ولا ده، اطلع خطأ (مش تشتغل على example.com)
           else
             echo "❌ ERROR: No domains provided!"
-            echo "Either fill the 'domains' input OR create a domains.txt file in the repo."
+            echo "Either fill the 'domains' input OR create a domains.txt file."
             exit 1
           fi
-          
+
           echo "=== Domains to scan ==="
           cat /tmp/domains.txt
           echo "======================="
-          
-          ./legacy_scan.sh /tmp/domains.txt
 
-      - name: Upload Results
+          # شغّل السكربت
+          bash ./legacy_scan.sh /tmp/domains.txt
+          echo "=== Script finished with exit code $? ==="
+
+      - name: Upload Full Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: legacy-findings-v3-${{ github.run_number }}
+          name: legacy-hunt-full-${{ github.run_number }}
           path: legacy_hunt_*/
           retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload Reports Only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LEGACY-FINDINGS-${{ github.run_number }}
+          path: |
+            legacy_hunt_*/MASTER_LEGACY_REPORT.md
+            legacy_hunt_*/**/LEGACY_REPORT.md
+            legacy_hunt_*/**/nuclei/merged.txt
+            legacy_hunt_*/**/vulns/unauth_access.txt
+            legacy_hunt_*/**/backups/sensitive_files.txt
+            legacy_hunt_*/**/js/js_secrets.txt
+          retention-days: 90
           if-no-files-found: warn
